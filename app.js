@@ -1,10 +1,10 @@
 // ===============================
-// WeatherApp Constructor Function
+// WeatherApp Constructor
 // ===============================
 
 function WeatherApp(apiKey) {
     this.apiKey = apiKey;
-    this.apiUrl = "https://api.openweathermap.org/data/2.5/weather";
+    this.weatherUrl = "https://api.openweathermap.org/data/2.5/weather";
     this.forecastUrl = "https://api.openweathermap.org/data/2.5/forecast";
 
     // DOM Elements
@@ -16,48 +16,28 @@ function WeatherApp(apiKey) {
 }
 
 // ===============================
-// Initialize App
+// INIT
 // ===============================
 
 WeatherApp.prototype.init = function () {
     this.searchBtn.addEventListener("click", this.handleSearch.bind(this));
 
-    this.cityInput.addEventListener("keypress", (e) => {
+    this.cityInput.addEventListener("keypress", function (e) {
         if (e.key === "Enter") {
             this.handleSearch();
         }
-    });
-
-    this.showWelcome();
+    }.bind(this));
 };
 
 // ===============================
-// Welcome Screen
-// ===============================
-
-WeatherApp.prototype.showWelcome = function () {
-    this.weatherDisplay.innerHTML = `
-        <div class="welcome-message">
-            <h2>🌤 Welcome to SkyFetch</h2>
-            <p>Search for a city to see the weather forecast.</p>
-        </div>
-    `;
-};
-
-// ===============================
-// Handle Search
+// HANDLE SEARCH
 // ===============================
 
 WeatherApp.prototype.handleSearch = function () {
     const city = this.cityInput.value.trim();
 
     if (!city) {
-        this.showError("Please enter a city name.");
-        return;
-    }
-
-    if (city.length < 2) {
-        this.showError("City name must be at least 2 characters.");
+        alert("Please enter a city name");
         return;
     }
 
@@ -66,148 +46,78 @@ WeatherApp.prototype.handleSearch = function () {
 };
 
 // ===============================
-// Get Weather + Forecast
+// GET WEATHER + FORECAST
 // ===============================
 
 WeatherApp.prototype.getWeather = async function (city) {
-    this.showLoading();
-    this.searchBtn.disabled = true;
-    this.searchBtn.textContent = "Searching...";
+    this.weatherDisplay.innerHTML = "Loading...";
 
-    const currentUrl = `${this.apiUrl}?q=${city}&appid=${this.apiKey}&units=metric`;
+    const currentUrl = `${this.weatherUrl}?q=${city}&appid=${this.apiKey}&units=metric`;
+    const forecastUrl = `${this.forecastUrl}?q=${city}&appid=${this.apiKey}&units=metric`;
 
     try {
-        const [currentWeather, forecastData] = await Promise.all([
+        const [weatherResponse, forecastResponse] = await Promise.all([
             axios.get(currentUrl),
-            this.getForecast(city),
+            axios.get(forecastUrl)
         ]);
 
-        this.displayWeather(currentWeather.data);
-        this.displayForecast(forecastData);
+        this.displayWeather(weatherResponse.data);
+        this.displayForecast(forecastResponse.data);
 
     } catch (error) {
+        this.weatherDisplay.innerHTML = "City not found ❌";
         console.error(error);
-
-        if (error.response && error.response.status === 404) {
-            this.showError("City not found. Please check spelling.");
-        } else {
-            this.showError("Something went wrong. Please try again.");
-        }
-
-    } finally {
-        this.searchBtn.disabled = false;
-        this.searchBtn.textContent = "Search";
     }
 };
 
 // ===============================
-// Get Forecast Data
-// ===============================
-
-WeatherApp.prototype.getForecast = async function (city) {
-    const url = `${this.forecastUrl}?q=${city}&appid=${this.apiKey}&units=metric`;
-
-    const response = await axios.get(url);
-    return response.data;
-};
-
-// ===============================
-// Display Current Weather
+// DISPLAY CURRENT WEATHER
 // ===============================
 
 WeatherApp.prototype.displayWeather = function (data) {
-    const cityName = data.name;
-    const temperature = Math.round(data.main.temp);
-    const description = data.weather[0].description;
-    const icon = data.weather[0].icon;
-    const iconUrl = `https://openweathermap.org/img/wn/${icon}@2x.png`;
-
-    this.weatherDisplay.innerHTML = `
-        <div class="weather-info">
-            <h2>${cityName}</h2>
-            <img src="${iconUrl}" alt="weather icon">
-            <h1>${temperature}°C</h1>
-            <p style="text-transform: capitalize;">${description}</p>
+    const html = `
+        <div class="current-weather">
+            <h2>${data.name}, ${data.sys.country}</h2>
+            <p><strong>${data.weather[0].main}</strong></p>
+            <p>🌡 Temperature: ${data.main.temp}°C</p>
+            <p>💧 Humidity: ${data.main.humidity}%</p>
+            <p>🌬 Wind: ${data.wind.speed} m/s</p>
         </div>
     `;
+
+    this.weatherDisplay.innerHTML = html;
 };
 
 // ===============================
-// Process Forecast Data (5 Days)
-// ===============================
-
-WeatherApp.prototype.processForecastData = function (data) {
-    const dailyForecasts = data.list.filter(item =>
-        item.dt_txt.includes("12:00:00")
-    );
-
-    return dailyForecasts.slice(0, 5);
-};
-
-// ===============================
-// Display Forecast Cards
+// DISPLAY 5-DAY FORECAST
 // ===============================
 
 WeatherApp.prototype.displayForecast = function (data) {
-    const dailyForecasts = this.processForecastData(data);
 
-    const forecastHTML = dailyForecasts.map(day => {
-        const date = new Date(day.dt * 1000);
-        const dayName = date.toLocaleDateString("en-US", { weekday: "short" });
-        const temp = Math.round(day.main.temp);
-        const description = day.weather[0].description;
-        const icon = day.weather[0].icon;
-        const iconUrl = `https://openweathermap.org/img/wn/${icon}@2x.png`;
+    let forecastHTML = `<h3>5-Day Forecast</h3><div class="forecast-container">`;
 
-        return `
+    // Filter: One forecast per day (every 8th item = 24 hours)
+    const dailyData = data.list.filter((item, index) => index % 8 === 0);
+
+    dailyData.forEach(day => {
+        const date = new Date(day.dt * 1000).toLocaleDateString();
+
+        forecastHTML += `
             <div class="forecast-card">
-                <h4>${dayName}</h4>
-                <img src="${iconUrl}" alt="icon">
-                <p class="forecast-temp">${temp}°C</p>
-                <p class="forecast-desc">${description}</p>
+                <p>${date}</p>
+                <p>${day.weather[0].main}</p>
+                <p>🌡 ${day.main.temp}°C</p>
             </div>
         `;
-    }).join("");
+    });
 
-    const forecastSection = `
-        <div class="forecast-section">
-            <h3 class="forecast-title">5-Day Forecast</h3>
-            <div class="forecast-container">
-                ${forecastHTML}
-            </div>
-        </div>
-    `;
+    forecastHTML += `</div>`;
 
-    this.weatherDisplay.innerHTML += forecastSection;
+    this.weatherDisplay.innerHTML += forecastHTML;
 };
 
 // ===============================
-// Loading State
-// ===============================
-
-WeatherApp.prototype.showLoading = function () {
-    this.weatherDisplay.innerHTML = `
-        <div class="loading-container">
-            <p>Loading weather data...</p>
-        </div>
-    `;
-};
-
-// ===============================
-// Error State
-// ===============================
-
-WeatherApp.prototype.showError = function (message) {
-    this.weatherDisplay.innerHTML = `
-        <div class="error-message">
-            <h3>⚠ Error</h3>
-            <p>${message}</p>
-        </div>
-    `;
-};
-
-// ===============================
-// Create App Instance
+// CREATE APP INSTANCE
 // ===============================
 
 const app = new WeatherApp("4f10cecf59445a32b474cb51b3370976");
