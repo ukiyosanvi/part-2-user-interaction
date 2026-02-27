@@ -3,32 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <title>SkyFetch Weather Dashboard</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Google Font (Optional but nice) -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <!-- Axios CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <!-- Link CSS -->
     <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-<div class="container">
+    <div class="app-container">
 
-    <h1>🌤️ SkyFetch Weather Dashboard</h1>
+        <h1 class="app-title">🌤 SkyFetch</h1>
 
-    <!-- Search Section -->
-    <div class="search-section">
-        <input 
-            type="text" 
-            id="city-input" 
-            placeholder="Enter city name..."
-        />
-        <button id="search-btn">🔍 Search</button>
+        <!-- Search Section -->
+        <div class="search-container">
+            <input 
+                type="text" 
+                id="city-input" 
+                placeholder="Enter city name..."
+            />
+            <button id="search-btn">Search</button>
+        </div>
+
+        <!-- Weather Display Section -->
+        <div id="weather-display" class="weather-display">
+            <!-- Weather + Forecast will appear here -->
+        </div>
+
     </div>
 
-    <!-- Weather Display -->
-    <div id="weather-display"></div>
-
-</div>
-
-<!-- Axios CDN -->
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-<script src="app.js"></script>
+    <!-- App JS -->
+    <script src="app.js"></script>
 
 </body>
 </html>
